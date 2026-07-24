@@ -11,7 +11,7 @@ export default function Landing() {
   useEffect(() => {
     api
       .get('/listings', { params: { sort: 'newest', limit: 6 } })
-      .then((res) => setListings(res.data.items))
+      .then((res) => setListings(res.data?.items || []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

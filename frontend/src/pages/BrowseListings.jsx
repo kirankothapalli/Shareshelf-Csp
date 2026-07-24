@@ -37,9 +37,10 @@ export default function BrowseListings() {
     Object.entries(filters).forEach(([k, v]) => { if (v && k !== 'radius') params[k] = v; });
     api
       .get('/listings', { params })
-      .then((res) => setListings(res.data.items))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .then((res) => {
+        setListings(res.data?.items || []);
+        setTotal(res.data?.total || 0);
+      }).finally(() => setLoading(false));
   }, [coords, filters]);
 
   function updateFilter(key, value) {

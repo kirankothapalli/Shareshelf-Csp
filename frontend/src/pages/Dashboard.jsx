@@ -20,12 +20,12 @@ export default function Dashboard() {
     setLoading(true);
     Promise.all([
       api.get('/listings', { params: { search: undefined } }).catch(() => ({ data: { items: [] } })),
-      api.get('/transactions/mine'),
-      api.get(`/ratings/user/${user._id}`),
+      api.get('/transactions/mine').catch(() => ({ data: { transactions: [] } })),
+      api.get(`/ratings/user/${user._id}`).catch(() => ({ data: { ratings: [], summary: { avg: 0, count: 0 } } })),
     ]).then(([listingsRes, txnRes, ratingsRes]) => {
-      setListings(listingsRes.data.items.filter((l) => l.owner?._id === user._id || l.owner === user._id));
-      setTransactions(txnRes.data.transactions);
-      setRatings(ratingsRes.data);
+      setListings(listingsRes.data?.items?.filter((l) => l.owner?._id === user._id || l.owner === user._id) || []);
+      setTransactions(txnRes.data?.transactions || []);
+      setRatings(ratingsRes.data || { ratings: [], summary: { avg: 0, count: 0 } });
     }).finally(() => setLoading(false));
   }, [user._id]);
 

@@ -18,7 +18,12 @@ function processQueue(error, token = null) {
 }
 
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    if (typeof res.data === 'string' && res.data.startsWith('<!DOCTYPE html>')) {
+      return Promise.reject(new Error('API returned HTML. Check VITE_BACKEND_URL.'));
+    }
+    return res;
+  },
   async (error) => {
     const original = error.config;
     if (error.response?.status === 401 && !original._retry && localStorage.getItem('refreshToken')) {
