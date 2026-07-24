@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/uploads/(.*)",
+      "destination": "BACKEND_URL_PLACEHOLDER/uploads/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

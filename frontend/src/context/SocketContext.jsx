@@ -4,6 +4,8 @@ import { useAuth } from './AuthContext.jsx';
 
 const SocketContext = createContext(null);
 
+const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+
 export function SocketProvider({ children }) {
   const { user } = useAuth();
   const [socket, setSocket] = useState(null);
@@ -11,12 +13,12 @@ export function SocketProvider({ children }) {
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
-    if (!user || !token) {
+    if (!token || !user) {
       setSocket(null);
       return;
     }
 
-    const newSocket = io('/', { path: '/socket.io', auth: { token } });
+    const newSocket = io(backendUrl || '/', { path: '/socket.io', auth: { token } });
     setSocket(newSocket);
 
     function pushNotification(message, type = 'info') {
