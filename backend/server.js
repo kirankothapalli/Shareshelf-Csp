@@ -39,6 +39,7 @@ app.use(generalLimiter);
 // static serving of uploaded photos/docs (local storage provider)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+app.get('/', (req, res) => res.send('ShareShelf API is running. Please visit the frontend application.'));
 app.get('/api/health', (req, res) => res.json({ status: 'ok', service: 'shareshelf-api' }));
 
 app.use('/api/auth', authRoutes);
