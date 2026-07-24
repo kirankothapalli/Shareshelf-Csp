@@ -37,7 +37,9 @@ async function signup(req, res, next) {
     });
     if (existing) return res.status(409).json({ error: 'An account with this email/phone already exists' });
 
-    const userData = { name, email, phone, role };
+    const userData = { name, role };
+    if (email) userData.email = email;
+    if (phone) userData.phone = phone;
     if (password) userData.passwordHash = await bcrypt.hash(password, 10);
 
     // school accounts still go through a verification step (institution doc), same as students
