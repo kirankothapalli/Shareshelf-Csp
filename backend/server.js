@@ -52,6 +52,16 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.get('/', (req, res) => res.send('ShareShelf API is running. Please visit the frontend application.'));
 app.get('/api/health', (req, res) => res.json({ status: 'ok', service: 'shareshelf-api' }));
 
+const Listing = require('./models/Listing');
+app.get('/api/debug/listings', async (req, res) => {
+  try {
+    const listings = await Listing.find({});
+    res.json({ count: listings.length, listings });
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/verify', verifyRoutes);
 app.use('/api/users', userRoutes);
