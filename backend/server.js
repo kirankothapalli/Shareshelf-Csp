@@ -25,9 +25,19 @@ const meetupRoutes = require('./routes/meetupRoutes');
 const app = express();
 
 app.use(helmet());
+const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173').split(',').map(o => o.trim());
+
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+    origin: function (origin, callback) {
+      // allow requests with no origin (like mobile apps or curl requests)
+      // or if the origin is in our allowed list, or if we allow all vercel apps for testing
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   })
 );
