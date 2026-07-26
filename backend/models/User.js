@@ -4,13 +4,12 @@ const UserSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
-    phone: { type: String, unique: true, sparse: true, trim: true },
     passwordHash: { type: String, select: false },
 
     role: {
       type: String,
-      enum: ['student', 'public', 'school', 'admin'],
-      default: 'public',
+      enum: ['student', 'school', 'admin'],
+      default: 'student',
       required: true,
     },
 
@@ -28,6 +27,8 @@ const UserSchema = new mongoose.Schema(
       // hash of the ID/receipt number only - raw document is never persisted long-term
       docHash: { type: String, default: null, index: true },
       docUploadPath: { type: String, default: null }, // temp path, purged post-review
+      fileHash: { type: String, default: null }, // SHA-256 of uploaded file content
+      anonymizedRefId: { type: String, default: null }, // UUID-v4 link to VerificationHash record
       rejectionReason: { type: String, default: null },
       reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
       reviewedAt: { type: Date, default: null },

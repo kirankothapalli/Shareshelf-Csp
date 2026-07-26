@@ -63,3 +63,9 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+export function getImageUrl(path) {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  return `${import.meta.env.VITE_BACKEND_URL || ''}${path.startsWith('/') ? path : '/' + path}`;
+}

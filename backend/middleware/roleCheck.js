@@ -12,7 +12,6 @@ function requireRole(...roles) {
 function requireVerified(req, res, next) {
   if (!req.user) return res.status(401).json({ error: 'Not authenticated' });
   if (req.user.role === 'admin') return next();
-  if (req.user.role === 'public') return next(); // public donors only need OTP verification (handled at signup)
   if (req.user.verification.status !== 'approved') {
     return res.status(403).json({ error: 'Account verification required for this action' });
   }

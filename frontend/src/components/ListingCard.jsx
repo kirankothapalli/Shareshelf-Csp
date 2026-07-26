@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { getImageUrl } from '../api/axios.js';
 import VerifiedBadge from './VerifiedBadge.jsx';
 
 export default function ListingCard({ listing }) {
@@ -10,7 +11,7 @@ export default function ListingCard({ listing }) {
     >
       <div className="aspect-[4/3] bg-sage/40 overflow-hidden">
         {photo ? (
-          <img src={photo} alt={listing.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+          <img src={getImageUrl(photo)} alt={listing.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-4xl">📚</div>
         )}

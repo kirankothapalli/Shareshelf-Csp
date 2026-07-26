@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import api from '../api/axios.js';
+import api, { getImageUrl } from '../api/axios.js';
 import Loader from '../components/Loader.jsx';
 import VerifiedBadge from '../components/VerifiedBadge.jsx';
 import RatingStars from '../components/RatingStars.jsx';
@@ -49,6 +49,19 @@ export default function ListingDetail() {
     }
   }
 
+  async function deleteListing() {
+    if (!window.confirm('Are you sure you want to delete this listing? This cannot be undone.')) return;
+    setBusy(true);
+    setError('');
+    try {
+      await api.delete(`/listings/${id}`);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Could not delete listing');
+      setBusy(false);
+    }
+  }
+
   if (loading) return <Loader label="Loading listing…" />;
   if (!listing) return <p className="text-center py-16 text-muted">Listing not found.</p>;
 
@@ -60,7 +73,7 @@ export default function ListingDetail() {
         <div>
           <div className="aspect-[4/3] bg-sage/40 rounded-2xl overflow-hidden mb-3">
             {listing.photos?.[activePhoto] ? (
-              <img src={listing.photos[activePhoto]} alt={listing.title} className="w-full h-full object-cover" />
+              <img src={getImageUrl(listing.photos[activePhoto])} alt={listing.title} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-6xl">📚</div>
             )}
@@ -69,7 +82,7 @@ export default function ListingDetail() {
             <div className="flex gap-2">
               {listing.photos.map((p, i) => (
                 <button key={p} onClick={() => setActivePhoto(i)} className={`w-16 h-16 rounded-lg overflow-hidden border-2 ${i === activePhoto ? 'border-forest' : 'border-transparent'}`}>
-                  <img src={p} alt="" className="w-full h-full object-cover" />
+                  <img src={getImageUrl(p)} alt="" className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>
@@ -93,7 +106,7 @@ export default function ListingDetail() {
               <RatingStars value={Math.round(listing.owner?.rating?.avg || 0)} readOnly size="text-sm" />
               <span>({listing.owner?.rating?.count || 0} ratings)</span>
             </div>
-            <p className="text-sm text-muted mt-2">📍 {listing.location?.areaLabel || 'Approximate area shown only'}</p>
+            <p className="text-sm text-muted mt-2">📍 {listing.location?.areaLabel || listing.owner?.location?.areaLabel || 'Approximate area shown only'}</p>
             <p className="text-xs text-muted mt-1">Exact address is shared only after a request is accepted.</p>
           </div>
 
@@ -106,9 +119,14 @@ export default function ListingDetail() {
             </button>
           )}
           {isOwner && (
-            <Link to={`/listings/${id}/edit`} className="block text-center border border-ink/20 font-medium py-3 rounded-full hover:bg-sage/50 transition">
-              Edit this listing
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link to={`/listings/${id}/edit`} className="flex-1 text-center border border-ink/20 font-medium py-3 rounded-full hover:bg-sage/50 transition">
+                Edit this listing
+              </Link>
+              <button onClick={deleteListing} disabled={busy} className="flex-1 text-center border border-red-200 text-red-600 font-medium py-3 rounded-full hover:bg-red-50 transition disabled:opacity-60">
+                {busy ? 'Deleting…' : 'Delete listing'}
+              </button>
+            </div>
           )}
           {listing.status !== 'active' && !isOwner && (
             <p className="text-center text-sm text-muted border border-ink/10 rounded-full py-3">This item is currently {listing.status}.</p>

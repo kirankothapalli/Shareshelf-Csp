@@ -1,7 +1,9 @@
 const fs = require('fs');
+const path = require('path');
 const User = require('../models/User');
 const AdminAuditLog = require('../models/AdminAuditLog');
-const { hashDocNumber } = require('../utils/hash');
+const VerificationHash = require('../models/VerificationHash');
+const { hashDocNumber, hashDocFile, generateAnonymizedRefId } = require('../utils/hash');
 const { emitToUser } = require('../utils/socket');
 const { sendEmail } = require('../utils/email');
 
@@ -17,7 +19,7 @@ async function uploadVerification(req, res, next) {
 
     const docHash = hashDocNumber(docNumber);
 
-    // Loophole #2 mitigation: block duplicate hash on signup/verification
+    // Duplicate detection: check doc number hash against existing users
     const duplicate = await User.findOne({
       'verification.docHash': docHash,
       _id: { $ne: req.user._id },
@@ -28,14 +30,46 @@ async function uploadVerification(req, res, next) {
       return res.status(409).json({ error: 'This ID/receipt number is already associated with another account' });
     }
 
+    // Also check against the VerificationHash collection for previously verified docs
+    const hashRecord = await VerificationHash.findOne({
+      docNumberHash: docHash,
+      status: 'active',
+    });
+    if (hashRecord) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(409).json({ error: 'This ID/receipt number has already been verified on another account' });
+    }
+
+    // Compute SHA-256 hash of the uploaded file content
+    let fileHash = null;
+    try {
+      fileHash = await hashDocFile(req.file.path);
+    } catch {
+      // Non-fatal: proceed without file hash if computation fails
+    }
+
+    // Check file content hash for content-level duplicate detection
+    if (fileHash) {
+      const filedup = await VerificationHash.findOne({
+        fileHash,
+        status: 'active',
+      });
+      if (filedup) {
+        fs.unlink(req.file.path, () => {});
+        return res.status(409).json({ error: 'This document file has already been used for verification' });
+      }
+    }
+
     const user = req.user;
     user.verification.status = 'pending';
     user.verification.docType = docType;
     user.verification.docHash = docHash;
     user.verification.docUploadPath = req.file.path; // temporary - purged post-review
+    user.verification.fileHash = fileHash;
     user.verification.rejectionReason = null;
     user.verification.reviewedBy = null;
     user.verification.reviewedAt = null;
+    user.verification.anonymizedRefId = null;
     // soft name-match note passed along for the admin, not stored on the permanent record
     await user.save();
 
@@ -74,11 +108,69 @@ async function reviewVerification(req, res, next) {
     user.verification.reviewedAt = new Date();
     if (decision === 'rejected') user.verification.rejectionReason = reason || 'Not specified';
 
-    // Privacy safeguard: auto-delete the raw uploaded doc once reviewed either way
+    const auditMetadata = {};
+
+    if (decision === 'approved') {
+      // Create a VerificationHash record for long-term audit trail
+      const anonymizedRefId = generateAnonymizedRefId();
+      user.verification.anonymizedRefId = anonymizedRefId;
+
+      await VerificationHash.create({
+        docNumberHash: user.verification.docHash,
+        fileHash: user.verification.fileHash || null,
+        algorithm: 'sha256',
+        docType: user.verification.docType,
+        anonymizedRefId,
+        verifiedAt: new Date(),
+        verifiedBy: req.user._id,
+        status: 'active',
+        fileDeletionConfirmed: false,
+      });
+
+      auditMetadata.anonymizedRefId = anonymizedRefId;
+      auditMetadata.docNumberHashPrefix = user.verification.docHash?.substring(0, 12) + '…';
+      if (user.verification.fileHash) {
+        auditMetadata.fileHashPrefix = user.verification.fileHash.substring(0, 12) + '…';
+      }
+    }
+
+    // Privacy safeguard: securely delete the raw uploaded doc once reviewed either way
     if (user.verification.docUploadPath) {
-      fs.unlink(user.verification.docUploadPath, () => {});
+      const filePath = user.verification.docUploadPath;
+      auditMetadata.deletedFile = path.basename(filePath);
+
+      try {
+        // Delete the file
+        await fs.promises.unlink(filePath);
+
+        // Verify deletion
+        try {
+          await fs.promises.access(filePath);
+          // If we get here, file still exists — flag it
+          auditMetadata.deletionVerified = false;
+          console.error(`[verify] File deletion verification failed: ${filePath}`);
+        } catch {
+          // File not accessible — deletion confirmed
+          auditMetadata.deletionVerified = true;
+
+          // Update the VerificationHash record if approved
+          if (decision === 'approved' && user.verification.anonymizedRefId) {
+            await VerificationHash.findOneAndUpdate(
+              { anonymizedRefId: user.verification.anonymizedRefId },
+              { fileDeletionConfirmed: true, fileDeletionTimestamp: new Date() }
+            );
+          }
+        }
+      } catch (err) {
+        console.error(`[verify] Failed to delete file: ${filePath}`, err.message);
+        auditMetadata.deletionError = err.message;
+      }
+
       user.verification.docUploadPath = null;
     }
+
+    // Clear file hash from user document after review (only the VerificationHash record keeps it)
+    user.verification.fileHash = null;
 
     await user.save();
 
@@ -88,6 +180,7 @@ async function reviewVerification(req, res, next) {
       targetType: 'verification',
       targetId: user._id,
       reason: reason || '',
+      metadata: auditMetadata,
     });
 
     emitToUser(user._id, 'verification:updated', { status: decision });
@@ -105,4 +198,48 @@ async function reviewVerification(req, res, next) {
   }
 }
 
-module.exports = { uploadVerification, getVerificationStatus, reviewVerification };
+// GET /api/admin/verify/:userId/document - serve verification doc for admin review
+async function getVerificationDocument(req, res, next) {
+  try {
+    const user = await User.findById(req.params.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (user.verification.status !== 'pending') {
+      return res.status(400).json({ error: 'Document only available during pending review' });
+    }
+
+    if (!user.verification.docUploadPath) {
+      return res.status(404).json({ error: 'No document file found' });
+    }
+
+    // Verify file exists
+    try {
+      await fs.promises.access(user.verification.docUploadPath);
+    } catch {
+      return res.status(404).json({ error: 'Document file not found on disk' });
+    }
+
+    // Log the access for audit trail
+    await AdminAuditLog.create({
+      admin: req.user._id,
+      action: 'doc_viewed',
+      targetType: 'verification',
+      targetId: user._id,
+      reason: 'Admin viewed verification document during review',
+      metadata: { fileName: path.basename(user.verification.docUploadPath) },
+    });
+
+    // Serve with security headers
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Pragma': 'no-cache',
+      'X-Content-Type-Options': 'nosniff',
+    });
+
+    res.sendFile(path.resolve(user.verification.docUploadPath));
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { uploadVerification, getVerificationStatus, reviewVerification, getVerificationDocument };

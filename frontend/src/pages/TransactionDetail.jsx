@@ -34,18 +34,27 @@ export default function TransactionDetail() {
   useEffect(load, [id]);
 
   useEffect(() => {
-    if (txn && ['accepted', 'completed'].includes(txn.status)) {
+    if (txn && ['accepted', 'completed'].includes(txn.status) && socket) {
       joinTransactionRoom(id);
+      
+      const onConnect = () => joinTransactionRoom(id);
+      socket.on('connect', onConnect);
+
       api.get(`/messages/${id}`).then((res) => setMessages(res.data.messages)).catch(() => {});
+
+      return () => {
+        socket.off('connect', onConnect);
+      };
     }
   }, [txn?.status, socket, id]);
 
   useEffect(() => {
     if (!socket) return;
     function onNew(msg) {
-      if (msg.transaction === id) {
+      const txnId = typeof msg.transaction === 'object' ? msg.transaction._id : msg.transaction;
+      if (String(txnId) === String(id)) {
         setMessages((prev) => {
-          if (prev.some((m) => m._id === msg._id)) return prev;
+          if (prev.some((m) => String(m._id) === String(msg._id))) return prev;
           return [...prev, msg];
         });
       }

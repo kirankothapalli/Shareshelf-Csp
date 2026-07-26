@@ -26,6 +26,25 @@ async function createListing(req, res, next) {
 
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
+    let finalAreaLabel = areaLabel || req.user.location?.areaLabel || '';
+    
+    // Server-side reverse geocoding fallback
+    if (!finalAreaLabel && coords[0] !== 0 && coords[1] !== 0) {
+      try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${coords[1]}&lon=${coords[0]}&format=json`, {
+          headers: { 'User-Agent': 'ShareShelf/1.0 (Node.js)' }
+        });
+        const geocodeData = await response.json();
+        if (geocodeData && geocodeData.address) {
+          const area = geocodeData.address.suburb || geocodeData.address.neighbourhood || geocodeData.address.city_district || geocodeData.address.city || geocodeData.address.town || geocodeData.address.county || 'Approximate area';
+          const city = geocodeData.address.city || geocodeData.address.town || geocodeData.address.county || '';
+          finalAreaLabel = area !== city && city ? `${city} - ${area}` : area;
+        }
+      } catch (e) {
+        console.warn('Server-side reverse geocoding failed', e);
+      }
+    }
+
     const listing = await Listing.create({
       owner: req.user._id,
       title, category, subject, department, semester, condition, description,
@@ -37,7 +56,7 @@ async function createListing(req, res, next) {
       location: {
         type: 'Point',
         coordinates: coords,
-        areaLabel: areaLabel || req.user.location.areaLabel || '',
+        areaLabel: finalAreaLabel,
       },
       expiresAt,
     });

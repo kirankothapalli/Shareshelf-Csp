@@ -1,7 +1,4 @@
 export default function VerifiedBadge({ status, role }) {
-  if (role === 'public') {
-    return <span className="text-xs bg-sage text-forest-dark px-2 py-0.5 rounded-full font-medium">Public Donor</span>;
-  }
   if (status === 'approved') {
     return (
       <span className="text-xs bg-forest/10 text-forest px-2 py-0.5 rounded-full font-medium">

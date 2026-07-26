@@ -17,6 +17,35 @@ async function createRequest(req, res, next) {
   }
 }
 
+// GET /api/requests — public, returns all open requests
+async function getAllOpenRequests(req, res, next) {
+  try {
+    const { search, urgency } = req.query;
+    const filter = { status: 'open' };
+    if (urgency && ['low', 'medium', 'high'].includes(urgency)) {
+      filter.urgency = urgency;
+    }
+    if (search) {
+      filter.$text = { $search: search };
+    }
+
+    // Sort: high urgency first, then newest
+    const urgencyOrder = { high: 0, medium: 1, low: 2 };
+    const requests = await Request.find(filter)
+      .sort({ createdAt: -1 })
+      .populate('requester', 'name')
+      .limit(100)
+      .lean();
+
+    // In-memory sort by urgency priority (Mongo can't sort by custom enum order easily)
+    requests.sort((a, b) => (urgencyOrder[a.urgency] ?? 1) - (urgencyOrder[b.urgency] ?? 1));
+
+    res.json({ requests, total: requests.length });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // GET /api/requests/mine
 async function getMyRequests(req, res, next) {
   try {
@@ -43,4 +72,5 @@ async function getRequestMatches(req, res, next) {
   }
 }
 
-module.exports = { createRequest, getMyRequests, getRequestMatches };
+module.exports = { createRequest, getAllOpenRequests, getMyRequests, getRequestMatches };
+

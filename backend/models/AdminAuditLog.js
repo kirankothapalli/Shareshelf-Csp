@@ -7,6 +7,7 @@ const AdminAuditLogSchema = new mongoose.Schema(
     targetType: { type: String, required: true }, // 'user' | 'listing' | 'report' | 'verification'
     targetId: { type: mongoose.Schema.Types.ObjectId, required: true },
     reason: { type: String, default: '' },
+    metadata: { type: mongoose.Schema.Types.Mixed, default: {} }, // additional context (file hashes, etc.)
   },
   { timestamps: true }
 );

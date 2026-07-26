@@ -28,10 +28,10 @@ export function AuthProvider({ children }) {
     }
   }
 
-  async function login(emailOrPhone, password) {
+  async function login(email, password) {
     setLoading(true);
     try {
-      const { data } = await api.post('/auth/login', { emailOrPhone, password });
+      const { data } = await api.post('/auth/login', { email, password });
       persistSession(data);
       return data;
     } finally {

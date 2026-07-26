@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import api from '../api/axios.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -10,10 +10,12 @@ const emptyForm = {
 
 export default function CreateEditListing() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const isEdit = Boolean(id);
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState(emptyForm);
+  const prefillTitle = searchParams.get('prefill') || '';
+  const [form, setForm] = useState({ ...emptyForm, title: prefillTitle });
   const [photos, setPhotos] = useState([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -102,8 +104,12 @@ export default function CreateEditListing() {
     e.preventDefault();
     setError('');
 
-    if (user?.role !== 'public' && user?.role !== 'admin' && user?.verification?.status !== 'approved') {
+    if (user?.role !== 'admin' && user?.verification?.status !== 'approved') {
       return setError('Your account must be verified before you can create a listing.');
+    }
+
+    if (!isEdit && photos.length < 1) {
+      return setError('At least 1 live photo is required to ensure authenticity.');
     }
 
     setBusy(true);
@@ -112,40 +118,54 @@ export default function CreateEditListing() {
         await api.patch(`/listings/${id}`, form);
         navigate(`/listings/${id}`);
       } else {
-        if (photos.length < 1) return setError('At least 1 live photo is required to ensure authenticity.');
         const formData = new FormData();
         Object.entries(form).forEach(([k, v]) => formData.append(k, v));
         photos.forEach((p) => formData.append('photos', p));
 
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              formData.append('lat', pos.coords.latitude);
-              formData.append('lng', pos.coords.longitude);
-              submit(formData);
-            }, 
-            () => submit(formData),
-            { timeout: 4000 }
-          );
-        } else {
-          submit(formData);
+        // Get geolocation with a proper Promise wrapper so we can await it
+        const coords = await getGeolocation();
+        if (coords) {
+          formData.append('lat', coords.latitude);
+          formData.append('lng', coords.longitude);
+          
+          try {
+            const geocodeRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${coords.latitude}&lon=${coords.longitude}&format=json`);
+            const geocodeData = await geocodeRes.json();
+            if (geocodeData && geocodeData.address) {
+              const area = geocodeData.address.suburb || geocodeData.address.neighbourhood || geocodeData.address.city_district || geocodeData.address.city || geocodeData.address.town || geocodeData.address.county || 'Approximate area';
+              const city = geocodeData.address.city || geocodeData.address.town || geocodeData.address.county || '';
+              const areaLabel = area !== city && city ? `${city} - ${area}` : area;
+              formData.append('areaLabel', areaLabel);
+            }
+          } catch (e) {
+            console.warn('Reverse geocoding failed', e);
+          }
         }
-      }
-    } catch (err) {
-      setError(err.response?.data?.error || 'Could not save listing');
-      setBusy(false);
-    }
-  }
 
-  async function submit(formData) {
-    try {
-      const { data } = await api.post('/listings', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      navigate(`/listings/${data.listing._id}`);
+        const { data } = await api.post('/listings', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        navigate(`/listings/${data.listing._id}`);
+      }
     } catch (err) {
       setError(err.response?.data?.error || 'Could not save listing');
     } finally {
       setBusy(false);
     }
+  }
+
+  function getGeolocation() {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) return resolve(null);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve(pos.coords),
+        (err) => {
+          console.warn('Geolocation error:', err);
+          resolve(null);
+        },
+        { timeout: 15000, maximumAge: 60000 }
+      );
+    });
   }
 
   return (

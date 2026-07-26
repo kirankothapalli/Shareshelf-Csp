@@ -107,6 +107,31 @@ async function listUsers(req, res, next) {
   }
 }
 
+// GET /api/admin/users/:id/detail - detailed user profile for admin modal
+async function getUserDetail(req, res, next) {
+  try {
+    const user = await User.findById(req.params.id)
+      .select('name email phone role verification rating isSuspended suspensionReason location.areaLabel guardianContact createdAt');
+
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const [listingCount, transactionCount] = await Promise.all([
+      Listing.countDocuments({ owner: user._id }),
+      TransactionRequest.countDocuments({
+        $or: [{ requester: user._id }, { owner: user._id }],
+      }),
+    ]);
+
+    const userObj = user.toObject();
+    userObj.listingCount = listingCount;
+    userObj.transactionCount = transactionCount;
+
+    res.json({ user: userObj });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // GET /api/admin/audit-log
 async function getAuditLog(req, res, next) {
   try {
@@ -137,6 +162,15 @@ async function getStats(req, res, next) {
       completedAt: { $gte: since },
     });
 
+    // Role distribution for donut chart
+    const roleAgg = await User.aggregate([
+      { $group: { _id: '$role', count: { $sum: 1 } } },
+    ]);
+    const roleDistribution = roleAgg.map((r) => ({
+      name: r._id.charAt(0).toUpperCase() + r._id.slice(1),
+      value: r.count,
+    }));
+
     res.json({
       activeListings,
       completedTransactions: completedTxns,
@@ -145,12 +179,76 @@ async function getStats(req, res, next) {
       totalUsers,
       openReports,
       completedLast7Days: recentCompleted,
+      roleDistribution,
     });
   } catch (err) {
     next(err);
   }
 }
 
+// GET /api/admin/stats/trends - weekly trends for the last 30 days
+async function getStatsTrends(req, res, next) {
+  try {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    // Aggregate transactions by week
+    const txnTrends = await TransactionRequest.aggregate([
+      {
+        $match: {
+          status: 'completed',
+          completedAt: { $gte: thirtyDaysAgo },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$completedAt' },
+            week: { $isoWeek: '$completedAt' },
+          },
+          transactions: { $sum: 1 },
+          firstDate: { $min: '$completedAt' },
+        },
+      },
+      { $sort: { '_id.year': 1, '_id.week': 1 } },
+    ]);
+
+    const trends = txnTrends.map((t) => ({
+      label: new Date(t.firstDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+      transactions: t.transactions,
+      week: `W${t._id.week}`,
+    }));
+
+    // Also get user registration trends
+    const userTrends = await User.aggregate([
+      { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            week: { $isoWeek: '$createdAt' },
+          },
+          registrations: { $sum: 1 },
+        },
+      },
+      { $sort: { '_id.year': 1, '_id.week': 1 } },
+    ]);
+
+    // Merge user registration data into trends
+    for (const ut of userTrends) {
+      const key = `W${ut._id.week}`;
+      const existing = trends.find((t) => t.week === key);
+      if (existing) {
+        existing.registrations = ut.registrations;
+      }
+    }
+
+    res.json({ trends });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
-  getPendingVerifications, getReports, updateReport, suspendUser, getAuditLog, getStats, listUsers,
+  getPendingVerifications, getReports, updateReport, suspendUser, getAuditLog, getStats,
+  listUsers, getUserDetail, getStatsTrends,
 };

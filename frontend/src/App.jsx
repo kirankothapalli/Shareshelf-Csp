@@ -11,6 +11,7 @@ import BrowseListings from './pages/BrowseListings.jsx';
 import ListingDetail from './pages/ListingDetail.jsx';
 import CreateEditListing from './pages/CreateEditListing.jsx';
 import WishlistBoard from './pages/WishlistBoard.jsx';
+import CommunityRequests from './pages/CommunityRequests.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import TransactionDetail from './pages/TransactionDetail.jsx';
 import UserProfile from './pages/UserProfile.jsx';
@@ -21,6 +22,7 @@ import AdminVerificationQueue from './pages/admin/AdminVerificationQueue.jsx';
 import AdminReportsQueue from './pages/admin/AdminReportsQueue.jsx';
 import AdminUserManagement from './pages/admin/AdminUserManagement.jsx';
 import AdminStatsDashboard from './pages/admin/AdminStatsDashboard.jsx';
+import AdminAuditLogPage from './pages/admin/AdminAuditLogPage.jsx';
 
 export default function App() {
   return (
@@ -35,6 +37,7 @@ export default function App() {
             <Route path="/browse" element={<BrowseListings />} />
             <Route path="/listings/:id" element={<ListingDetail />} />
             <Route path="/safety" element={<SafetyGuidelines />} />
+            <Route path="/community-requests" element={<CommunityRequests />} />
             <Route path="/profile/:id?" element={<UserProfile />} />
 
             <Route path="/verify" element={<ProtectedRoute><VerificationUpload /></ProtectedRoute>} />
@@ -48,6 +51,7 @@ export default function App() {
             <Route path="/admin/reports" element={<ProtectedRoute roles={['admin']}><AdminReportsQueue /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute roles={['admin']}><AdminUserManagement /></ProtectedRoute>} />
             <Route path="/admin/stats" element={<ProtectedRoute roles={['admin']}><AdminStatsDashboard /></ProtectedRoute>} />
+            <Route path="/admin/audit-log" element={<ProtectedRoute roles={['admin']}><AdminAuditLogPage /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

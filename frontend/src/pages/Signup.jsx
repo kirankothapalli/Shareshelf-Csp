@@ -4,15 +4,14 @@ import { useAuth } from '../context/AuthContext.jsx';
 
 const ROLES = [
   { value: 'student', label: 'Student', desc: 'Request, buy, donate, or sell — full access after ID verification.' },
-  { value: 'public', label: 'Public Donor', desc: 'Donate or sell items. Lighter phone OTP verification.' },
-  { value: 'school', label: 'School / Institution', desc: 'Bulk-list donated materials on behalf of your institution.' },
+  { value: 'school', label: 'School / Institution / NGO', desc: 'Bulk-list donated materials on behalf of your organization.' },
 ];
 
 export default function Signup() {
   const { signup } = useAuth();
   const navigate = useNavigate();
   const [role, setRole] = useState('student');
-  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -26,8 +25,7 @@ export default function Signup() {
     setBusy(true);
     try {
       await signup({ ...form, role });
-      if (role === 'student' || role === 'school') navigate('/verify');
-      else navigate('/browse');
+      navigate('/verify');
     } catch (err) {
       setError(err.response?.data?.error || 'Signup failed');
     } finally {
@@ -65,29 +63,16 @@ export default function Signup() {
             className="w-full border border-ink/20 rounded-lg px-3 py-2 bg-card" />
         </div>
 
-        {(role === 'student' || role === 'school') && (
-          <>
-            <div>
-              <label className="text-sm font-medium block mb-1">Email</label>
-              <input required type="email" value={form.email} onChange={(e) => update('email', e.target.value)}
-                className="w-full border border-ink/20 rounded-lg px-3 py-2 bg-card" />
-            </div>
-            <div>
-              <label className="text-sm font-medium block mb-1">Password</label>
-              <input required type="password" value={form.password} onChange={(e) => update('password', e.target.value)}
-                className="w-full border border-ink/20 rounded-lg px-3 py-2 bg-card" />
-            </div>
-          </>
-        )}
-
-        {role === 'public' && (
-          <div>
-            <label className="text-sm font-medium block mb-1">Phone number</label>
-            <input required value={form.phone} onChange={(e) => update('phone', e.target.value)} placeholder="+91..."
-              className="w-full border border-ink/20 rounded-lg px-3 py-2 bg-card" />
-            <p className="text-xs text-muted mt-1">You'll verify this via OTP after signing up.</p>
-          </div>
-        )}
+        <div>
+          <label className="text-sm font-medium block mb-1">Email</label>
+          <input required type="email" value={form.email} onChange={(e) => update('email', e.target.value)}
+            className="w-full border border-ink/20 rounded-lg px-3 py-2 bg-card" />
+        </div>
+        <div>
+          <label className="text-sm font-medium block mb-1">Password</label>
+          <input required type="password" value={form.password} onChange={(e) => update('password', e.target.value)}
+            className="w-full border border-ink/20 rounded-lg px-3 py-2 bg-card" />
+        </div>
 
         <button disabled={busy} className="w-full bg-forest text-white font-medium py-2.5 rounded-full hover:bg-forest-dark transition disabled:opacity-60">
           {busy ? 'Creating account…' : 'Create account'}

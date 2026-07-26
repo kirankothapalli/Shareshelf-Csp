@@ -2,13 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Base ─── */
 html, body {
   background-color: #FAF7EF;
   color: #2B2620;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, .font-display {
@@ -29,9 +36,265 @@ h1, h2, h3, h4, .font-display {
   font-family: 'Inter', sans-serif;
 }
 
+/* ─── Scroll-Triggered Animations ─── */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scroll-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.scroll-reveal-left {
+  opacity: 0;
+  transform: translateX(-40px);
+  transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scroll-reveal-left.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.scroll-reveal-right {
+  opacity: 0;
+  transform: translateX(40px);
+  transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scroll-reveal-right.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.scroll-reveal-scale {
+  opacity: 0;
+  transform: scale(0.92);
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scroll-reveal-scale.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Stagger delays */
+.delay-100 { transition-delay: 100ms; }
+.delay-200 { transition-delay: 200ms; }
+.delay-300 { transition-delay: 300ms; }
+.delay-400 { transition-delay: 400ms; }
+.delay-500 { transition-delay: 500ms; }
+.delay-600 { transition-delay: 600ms; }
+.delay-700 { transition-delay: 700ms; }
+
+/* ─── Glassmorphism ─── */
+.glass-card {
+  background: rgba(255, 253, 248, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(43, 38, 32, 0.08);
+}
+
+.glass-card-dark {
+  background: rgba(47, 82, 51, 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(47, 82, 51, 0.15);
+}
+
+/* ─── Gradient Backgrounds ─── */
+.gradient-hero {
+  background: linear-gradient(135deg, #FAF7EF 0%, #EDF5EE 40%, #DCE6D6 100%);
+}
+
+.gradient-forest {
+  background: linear-gradient(135deg, #2F5233 0%, #3F6B44 50%, #203823 100%);
+}
+
+.gradient-warm {
+  background: linear-gradient(135deg, #FAF7EF 0%, #FFF5EB 50%, #FFE8D0 100%);
+}
+
+.gradient-text-forest {
+  background: linear-gradient(135deg, #2F5233, #3F6B44);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Micro-Interactions ─── */
+.hover-lift {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 36px rgba(43, 38, 32, 0.1);
+}
+
+.hover-glow {
+  transition: box-shadow 0.3s ease;
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 30px rgba(47, 82, 51, 0.15);
+}
+
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+}
+
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(47, 82, 51, 0.25);
+}
+
+.btn-primary:hover::after {
+  opacity: 1;
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* ─── Animated Underline ─── */
+.animated-underline {
+  position: relative;
+}
+
+.animated-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #2F5233;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animated-underline:hover::after {
+  width: 100%;
+}
+
+/* ─── Admin Sidebar ─── */
+.admin-sidebar {
+  background: linear-gradient(180deg, #203823 0%, #2F5233 100%);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-sidebar-link {
+  transition: background 0.2s ease, padding-left 0.2s ease;
+}
+
+.admin-sidebar-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.admin-sidebar-link.active {
+  background: rgba(255, 255, 255, 0.12);
+  border-left: 3px solid #C97A3D;
+}
+
+/* ─── Step Connector Lines ─── */
+.step-connector {
+  position: relative;
+}
+
+.step-connector::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -1.25rem;
+  width: 2.5rem;
+  height: 2px;
+  background: linear-gradient(90deg, #2F5233, transparent);
+  opacity: 0.3;
+}
+
+.step-connector:last-child::after {
+  display: none;
+}
+
+/* ─── Number Counter ─── */
+.counter-value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Pulse Dot for notifications / pending badges ─── */
+.pulse-dot {
+  position: relative;
+}
+
+.pulse-dot::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  background: #C97A3D;
+  border-radius: 50%;
+  animation: pulseSoft 2s ease-in-out infinite;
+}
+
+@keyframes pulseSoft {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.3); }
+}
+
+/* ─── Modal Overlay ─── */
+.modal-overlay {
+  background: rgba(43, 38, 32, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* ─── Responsive Helpers ─── */
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
+  .scroll-reveal,
+  .scroll-reveal-left,
+  .scroll-reveal-right,
+  .scroll-reveal-scale {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ─── Custom Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 132, 120, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 132, 120, 0.5);
 }

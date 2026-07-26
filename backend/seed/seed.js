@@ -57,11 +57,12 @@ async function seed() {
     rating: { avg: 4.9, count: 30 },
   });
 
-  const publicDonor = await User.create({
-    name: 'Suresh (Public Donor)',
-    phone: '+919876500001',
-    role: 'public',
-    verification: { status: 'approved' },
+  const suresh = await User.create({
+    name: 'Suresh',
+    email: 'suresh@example.com',
+    passwordHash,
+    role: 'student',
+    verification: { status: 'approved', docType: 'id_card', reviewedBy: admin._id, reviewedAt: new Date() },
     location: { type: 'Point', coordinates: [81.5180, 16.5410], areaLabel: 'Bhimavaram - Old Town' },
   });
 
@@ -140,7 +141,7 @@ async function seed() {
       expiresAt,
     },
     {
-      owner: publicDonor._id,
+      owner: suresh._id,
       title: 'Assorted Stationery Pack',
       category: 'stationery',
       subject: 'General',
@@ -151,7 +152,7 @@ async function seed() {
       photos: ['/uploads/sample-stationery-1.jpg'],
       type: 'Free',
       quantity: 5,
-      location: publicDonor.location,
+      location: suresh.location,
       status: 'active',
       expiresAt,
     },
@@ -171,7 +172,7 @@ async function seed() {
   console.log(` - Student:  ${rohan.email} / Passw0rd!`);
   console.log(` - Student:  ${priya.email} / Passw0rd! (verification pending)`);
   console.log(` - School:   ${school.email} / Passw0rd!`);
-  console.log(` - Public donor phone: ${publicDonor.phone} (OTP-verified, no password - use OTP login)`);
+  console.log(` - Student:  ${suresh.email} / Passw0rd!`);
 
   await mongoose.disconnect();
 }

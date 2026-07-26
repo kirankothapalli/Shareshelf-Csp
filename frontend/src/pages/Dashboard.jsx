@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../api/axios.js';
+import api, { getImageUrl } from '../api/axios.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import Loader from '../components/Loader.jsx';
 import VerifiedBadge from '../components/VerifiedBadge.jsx';
@@ -53,7 +53,7 @@ export default function Dashboard() {
           {listings.map((l) => (
             <Link key={l._id} to={`/listings/${l._id}`} className="flex items-center gap-4 border border-ink/10 rounded-xl p-3 bg-card hover:shadow-sm">
               <div className="w-16 h-16 rounded-lg bg-sage/40 overflow-hidden shrink-0">
-                {l.photos?.[0] && <img src={l.photos[0]} alt="" className="w-full h-full object-cover" />}
+                {l.photos?.[0] && <img src={getImageUrl(l.photos[0])} alt="" className="w-full h-full object-cover" />}
               </div>
               <div className="flex-1">
                 <p className="font-semibold">{l.title}</p>
