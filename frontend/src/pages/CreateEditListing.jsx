@@ -218,7 +218,7 @@ export default function CreateEditListing() {
                 <input 
                   type="file" 
                   accept="image/*" 
-                  multiple 
+                  capture="environment"
                   onChange={handleFileChange}
                   className="block w-full text-sm text-ink/70
                     file:mr-4 file:py-2.5 file:px-4
