@@ -36,7 +36,8 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-paper/95 backdrop-blur-md border-b border-ink/8">
+    <>
+      <header className="sticky top-0 z-40 bg-paper/95 backdrop-blur-md border-b border-ink/8">
       <div className="max-w-6xl mx-auto px-4 flex items-center justify-between h-16">
         {/* Logo */}
         <Link to="/" className="font-display text-2xl font-semibold text-forest tracking-tight hover:opacity-80 transition-opacity">
@@ -143,6 +144,7 @@ export default function Navbar() {
           </button>
         </div>
       </div>
+    </header>
 
       {/* Mobile menu overlay */}
       {mobileOpen && (
@@ -233,6 +235,6 @@ export default function Navbar() {
           </div>
         </div>
       )}
-    </header>
+    </>
   );
 }
