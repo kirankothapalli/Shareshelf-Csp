@@ -1,8 +1,11 @@
+const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const validator = require('validator');
 const User = require('../models/User');
+const VerificationHash = require('../models/VerificationHash');
 const { signAccessToken, signRefreshToken, verifyRefreshToken } = require('../utils/jwt');
 const { sendOTP, verifyOTP } = require('../utils/otp');
+const { hashDocNumber, hashDocFile } = require('../utils/hash');
 
 function sanitizeUser(user) {
   const obj = user.toObject();
@@ -15,7 +18,7 @@ function sanitizeUser(user) {
 // Handles student/school signup
 async function signup(req, res, next) {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, docType, docNumber, nameOnDoc } = req.body;
 
     if (!name || !role) return res.status(400).json({ error: 'name and role are required' });
     if (!['student', 'school', 'admin'].includes(role)) {
@@ -26,8 +29,57 @@ async function signup(req, res, next) {
     if (!email || !validator.isEmail(email)) return res.status(400).json({ error: 'Valid email is required' });
     if (!password) return res.status(400).json({ error: 'Password is required' });
 
+    // Validate verification upload
+    if (!['id_card', 'fee_receipt', 'institution_doc'].includes(docType)) {
+      if (req.file) fs.unlink(req.file.path, () => {});
+      return res.status(400).json({ error: 'Invalid document type' });
+    }
+    if (!docNumber) {
+      if (req.file) fs.unlink(req.file.path, () => {});
+      return res.status(400).json({ error: 'Document ID/receipt number is required' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: 'Document file is required' });
+    }
+
     const existing = await User.findOne({ email });
-    if (existing) return res.status(409).json({ error: 'An account with this email already exists' });
+    if (existing) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(409).json({ error: 'An account with this email already exists' });
+    }
+
+    const docHash = hashDocNumber(docNumber);
+
+    // Duplicate detection: check doc number hash against existing users
+    const duplicate = await User.findOne({ 'verification.docHash': docHash });
+    if (duplicate) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(409).json({ error: 'This ID/receipt number is already associated with another account' });
+    }
+
+    // Also check against the VerificationHash collection for previously verified docs
+    const hashRecord = await VerificationHash.findOne({ docNumberHash: docHash, status: 'active' });
+    if (hashRecord) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(409).json({ error: 'This ID/receipt number has already been verified on another account' });
+    }
+
+    // Compute SHA-256 hash of the uploaded file content
+    let fileHash = null;
+    try {
+      fileHash = await hashDocFile(req.file.path);
+    } catch {
+      // Non-fatal
+    }
+
+    // Check file content hash for content-level duplicate detection
+    if (fileHash) {
+      const filedup = await VerificationHash.findOne({ fileHash, status: 'active' });
+      if (filedup) {
+        fs.unlink(req.file.path, () => {});
+        return res.status(409).json({ error: 'This document file has already been used for verification' });
+      }
+    }
 
     const passwordHash = await bcrypt.hash(password, 10);
 
@@ -36,7 +88,13 @@ async function signup(req, res, next) {
       role,
       email,
       passwordHash,
-      verification: { status: 'unverified' },
+      verification: { 
+        status: 'pending',
+        docType,
+        docHash,
+        docUploadPath: req.file.path,
+        fileHash,
+      },
     };
 
     const user = await User.create(userData);

@@ -49,8 +49,7 @@ export default function VerificationUpload() {
     <div className="max-w-lg mx-auto px-4 py-16">
       <h1 className="font-display text-3xl font-semibold mb-2">Verify your account</h1>
       <p className="text-muted mb-4">
-        Upload your college ID card or fee payment receipt. We only keep a hash of the document number for
-        duplicate-account detection — the file itself is deleted automatically once an admin reviews it.
+        Your previous verification document was rejected. Please upload a clear copy of your college ID card or fee payment receipt. We only keep a hash of the document number for duplicate-account detection — the file itself is deleted automatically once an admin reviews it.
       </p>
       <div className="mb-6"><VerifiedBadge status={status} role={user?.role} /></div>
 
@@ -66,7 +65,7 @@ export default function VerificationUpload() {
         </p>
       )}
 
-      {(status === 'unverified' || status === 'rejected') && (
+      {(status === 'rejected') && (
         <form onSubmit={handleSubmit} className="space-y-4 mt-6">
           {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
           {message && <p className="text-sm text-forest bg-forest/10 rounded-lg px-3 py-2">{message}</p>}

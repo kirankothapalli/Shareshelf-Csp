@@ -20,7 +20,10 @@ export function AuthProvider({ children }) {
   async function signup(payload) {
     setLoading(true);
     try {
-      const { data } = await api.post('/auth/signup', payload);
+      const isFormData = payload instanceof FormData;
+      const { data } = await api.post('/auth/signup', payload, {
+        headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : {},
+      });
       persistSession(data);
       return data;
     } finally {
