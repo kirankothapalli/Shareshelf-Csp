@@ -118,8 +118,10 @@ export default function Signup() {
               <p className="text-xs text-muted mt-1">Used only to detect duplicate accounts, via a one-way hash.</p>
             </div>
             <div>
-              <label className="text-sm font-medium block mb-1">Upload document (image or PDF)</label>
-              <input type="file" accept="image/*,application/pdf" onChange={(e) => setFile(e.target.files[0])} required
+              <label className="text-sm font-medium block mb-1">
+                {docType === 'id_card' ? 'Upload ID (Take a photo or select image)' : 'Upload document (image or PDF)'}
+              </label>
+              <input type="file" accept={docType === 'id_card' ? "image/*" : "image/*,application/pdf"} onChange={(e) => setFile(e.target.files[0])} required
                 className="w-full text-sm" />
             </div>
           </div>

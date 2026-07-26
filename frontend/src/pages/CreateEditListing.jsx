@@ -20,19 +20,7 @@ export default function CreateEditListing() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-  const [isCameraActive, setIsCameraActive] = useState(false);
   const [photoPreviews, setPhotoPreviews] = useState([]);
-  const streamRef = useRef(null);
-
-  useEffect(() => {
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (isEdit) {
@@ -51,45 +39,17 @@ export default function CreateEditListing() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  useEffect(() => {
-    if (isCameraActive && videoRef.current && streamRef.current) {
-      videoRef.current.srcObject = streamRef.current;
+  function handleFileChange(e) {
+    const files = Array.from(e.target.files);
+    if (photos.length + files.length > 6) {
+      setError('Maximum 6 photos allowed.');
+      return;
     }
-  }, [isCameraActive]);
-
-  async function startCamera() {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      streamRef.current = mediaStream;
-      setIsCameraActive(true);
-      setError('');
-    } catch (err) {
-      setError('Could not access the camera. Please allow permissions.');
-    }
-  }
-
-  function stopCamera() {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-    }
-    streamRef.current = null;
-    setIsCameraActive(false);
-  }
-
-  function capturePhoto() {
-    if (!videoRef.current || !canvasRef.current || photos.length >= 6) return;
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    setError('');
     
-    canvas.toBlob((blob) => {
-      const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
-      setPhotos((prev) => [...prev, file]);
-      setPhotoPreviews((prev) => [...prev, URL.createObjectURL(file)]);
-    }, 'image/jpeg', 0.8);
+    setPhotos(prev => [...prev, ...files]);
+    const newPreviews = files.map(f => URL.createObjectURL(f));
+    setPhotoPreviews(prev => [...prev, ...newPreviews]);
   }
 
   function removePhoto(index) {
@@ -254,26 +214,20 @@ export default function CreateEditListing() {
             <p className="text-xs text-muted mb-4">To ensure authenticity, please take live photos of the item (max 6).</p>
             
             {photos.length < 6 ? (
-              <div className="mb-4 bg-paper rounded-lg overflow-hidden border border-ink/10">
-                {isCameraActive ? (
-                  <div className="relative">
-                    <video ref={videoRef} autoPlay playsInline muted className="w-full h-64 object-cover bg-black" />
-                    <div className="absolute bottom-4 left-0 w-full flex justify-center gap-4">
-                      <button type="button" onClick={capturePhoto} className="bg-forest text-white px-6 py-2 rounded-full font-medium shadow-lg hover:bg-forest-dark border-2 border-white">
-                        Take Photo
-                      </button>
-                      <button type="button" onClick={stopCamera} className="bg-black/70 text-white px-4 py-2 rounded-full font-medium hover:bg-black">
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-8 text-center border-2 border-dashed border-ink/20 rounded-lg">
-                    <button type="button" onClick={startCamera} className="bg-sage/50 text-forest font-medium px-4 py-2 rounded-lg hover:bg-sage">
-                      Open Camera
-                    </button>
-                  </div>
-                )}
+              <div className="mb-4">
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  multiple 
+                  onChange={handleFileChange}
+                  className="block w-full text-sm text-ink/70
+                    file:mr-4 file:py-2.5 file:px-4
+                    file:rounded-full file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-forest/10 file:text-forest
+                    hover:file:bg-forest/20 transition-colors
+                    cursor-pointer"
+                />
               </div>
             ) : (
                <div className="mb-4 p-4 text-center bg-sage/30 rounded-lg text-sm text-forest font-medium">
@@ -294,9 +248,6 @@ export default function CreateEditListing() {
                 ))}
               </div>
             )}
-            
-            {/* Hidden Canvas */}
-            <canvas ref={canvasRef} className="hidden" />
           </div>
         )}
 

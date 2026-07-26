@@ -7,7 +7,7 @@ const SocketContext = createContext(null);
 const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
 
 export function SocketProvider({ children }) {
-  const { user } = useAuth();
+  const { user, updateStoredUser } = useAuth();
   const [socket, setSocket] = useState(null);
   const [notifications, setNotifications] = useState([]);
 
@@ -34,9 +34,10 @@ export function SocketProvider({ children }) {
     newSocket.on('listing:matched', (payload) =>
       pushNotification(`A new listing matches your wishlist: "${payload.listing.title}"`, 'match')
     );
-    newSocket.on('verification:updated', (payload) =>
-      pushNotification(`Your verification was ${payload.status}`, payload.status === 'approved' ? 'success' : 'warning')
-    );
+    newSocket.on('verification:updated', (payload) => {
+      pushNotification(`Your verification was ${payload.status}`, payload.status === 'approved' ? 'success' : 'warning');
+      updateStoredUser({ verification: { ...user?.verification, status: payload.status } });
+    });
 
     return () => newSocket.disconnect();
   }, [user]);
