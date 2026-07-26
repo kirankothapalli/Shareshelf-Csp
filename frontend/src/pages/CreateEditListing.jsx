@@ -114,6 +114,24 @@ export default function CreateEditListing() {
     }
   }
 
+  async function startCamera() {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      streamRef.current = mediaStream;
+      setIsCameraActive(true);
+      setError('');
+    } catch (err) {
+      try {
+        const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        streamRef.current = fallbackStream;
+        setIsCameraActive(true);
+        setError('');
+      } catch (fallbackErr) {
+        setError('Could not access the camera. Please check permissions or try another browser.');
+      }
+    }
+  }
+
   function getGeolocation() {
     return new Promise((resolve) => {
       if (!navigator.geolocation) return resolve(null);
@@ -131,7 +149,7 @@ export default function CreateEditListing() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
       <h1 className="font-display text-3xl font-semibold mb-2">{isEdit ? 'Edit listing' : 'List an item'}</h1>
-      <p className="text-muted mb-8">Donate for free or sell below the original price — the platform never handles payment.</p>
+      <p className="text-muted mb-8">Donate for free or sell below the original price ΓÇö the platform never handles payment.</p>
 
       {error && <p className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
 
@@ -193,11 +211,11 @@ export default function CreateEditListing() {
         {form.type === 'Paid' && (
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium block mb-1">Original price (₹)</label>
+              <label className="text-sm font-medium block mb-1">Original price (Γé╣)</label>
               <input type="number" min="1" value={form.originalPriceDeclared} onChange={(e) => update('originalPriceDeclared', e.target.value)} className="w-full border border-ink/20 rounded-lg px-3 py-2 bg-card" />
             </div>
             <div>
-              <label className="text-sm font-medium block mb-1">Your price (₹) — must be below original</label>
+              <label className="text-sm font-medium block mb-1">Your price (Γé╣) ΓÇö must be below original</label>
               <input type="number" min="0" value={form.price} onChange={(e) => update('price', e.target.value)} className="w-full border border-ink/20 rounded-lg px-3 py-2 bg-card" />
             </div>
           </div>
@@ -218,7 +236,7 @@ export default function CreateEditListing() {
                 <input 
                   type="file" 
                   accept="image/*" 
-                  capture="environment"
+                  multiple 
                   onChange={handleFileChange}
                   className="block w-full text-sm text-ink/70
                     file:mr-4 file:py-2.5 file:px-4
@@ -252,7 +270,7 @@ export default function CreateEditListing() {
         )}
 
         <button disabled={busy} className="w-full bg-forest text-white font-medium py-3 rounded-full hover:bg-forest-dark transition disabled:opacity-60">
-          {busy ? 'Saving…' : isEdit ? 'Save changes' : 'Publish listing'}
+          {busy ? 'SavingΓÇª' : isEdit ? 'Save changes' : 'Publish listing'}
         </button>
       </form>
     </div>
